@@ -1,16 +1,17 @@
 <template>
     <v-container>
         <v-row>
+            <v-col cols="12" v-if="error">
+                <v-alert type="error">
+                    {{ error.message }}
+                </v-alert>
+            </v-col>
+            <PokemonFilter @updateFilters="updateFilters" />
             <v-col cols="12" v-if="loading && pokemons.length === 0" class="my-3 text-center">
                 <v-progress-circular indeterminate color="primary"/>
                 <p>
                     Loading...
                 </p>
-            </v-col>
-            <v-col cols="12" v-if="error">
-                <v-alert type="error">
-                    {{ error.message }}
-                </v-alert>
             </v-col>
             <v-col cols="12">
                 <v-row>
@@ -32,27 +33,68 @@
         </v-row>
     </v-container>
 </template>
-
 <script setup>
 import { ref, watchEffect, onMounted, onUnmounted } from "vue";
 import { useQuery } from "@vue/apollo-composable";
-import { GET_POKEMONS } from "../graphql/pokemonQueries";
+import { GET_POKEMONS, SEARCH_POKEMONS } from "../graphql/pokemonQueries";
 import PokemonCard from "./PokemonCard.vue";
+import PokemonFilter from "./PokemonFilter.vue";
 
-const limit = 96; // Her yüklemede getirilecek Pokémon sayısı
+const limit = 36;
 const offset = ref(0);
 const pokemons = ref([]);
 const isFetchingMore = ref(false);
+const searchQuery = ref("");
+const selectedType = ref("");
 
 const { result, loading, error, fetchMore } = useQuery(GET_POKEMONS, {
-  limit, offset: offset.value,
+  limit,
+  offset: offset.value,
+});
+
+const { result: searchResult, refetch: refetchSearch } = useQuery(SEARCH_POKEMONS, {
+  searchQuery: searchQuery.value,
+  type       : selectedType.value,
 });
 
 watchEffect(() => {
-  if (result.value && result.value.pokemon_v2_pokemon) {
-    pokemons.value = result.value.pokemon_v2_pokemon;
+  if (searchQuery.value || selectedType.value) {
+    if (searchResult.value && searchResult.value.pokemon_v2_pokemon) {
+      pokemons.value = searchResult.value.pokemon_v2_pokemon;
+    }
+  } else {
+    if (result.value && result.value.pokemon_v2_pokemon) {
+      pokemons.value = result.value.pokemon_v2_pokemon;
+    }
   }
 });
+
+const updateFilters = (filters) => {
+  searchQuery.value = filters.searchQuery;
+  selectedType.value = filters.selectedType;
+  const formattedSearchQuery = searchQuery.value ? `%${searchQuery.value}%` : "";
+  const  formattedType = selectedType.value || "";
+  if (searchQuery.value || selectedType.value) {
+    refetchSearch({
+      searchQuery: formattedSearchQuery,
+      type       : formattedType,
+    });
+  } 
+  else {
+    offset.value = 0; 
+    fetchMore({
+      variables  : { limit, offset: offset.value },
+      updateQuery: (previousResult, { fetchMoreResult }) => {
+        return {
+          pokemon_v2_pokemon: [
+            ...previousResult.pokemon_v2_pokemon,
+            ...fetchMoreResult.pokemon_v2_pokemon,
+          ],
+        };
+      },
+    });
+  }
+};
 
 const loadMoreTrigger = ref(null);
 let observer;
@@ -62,7 +104,10 @@ const loadMore = async () => {
   isFetchingMore.value = true;
   offset.value += limit;
   await fetchMore({
-    variables  : { limit, offset: offset.value },
+    variables: { 
+      limit,
+      offset: offset.value,
+    },
     updateQuery: (previousResult, { fetchMoreResult }) => {
       if (!fetchMoreResult) return previousResult;
       return {

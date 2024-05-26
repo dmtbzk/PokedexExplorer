@@ -36,45 +36,41 @@
 </template>
   
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useQuery } from "@vue/apollo-composable";
 import { GET_POKEMON_DETAILS } from "../graphql/pokemonQueries";
-  
+
 const props = defineProps({
-  id: {
-    type    : Number,
-    required: true
-  },
-  modelValue: {
-    type    : Boolean,
-    required: true
-  }
+  id        : Number,
+  modelValue: Boolean
 });
-  
 const emit = defineEmits(["update:modelValue"]);
-  
 const isOpenInternal = ref(props.modelValue);
-  
-watch(() => props.modelValue, (newValue) => {
-  isOpenInternal.value = newValue;
-});
-  
-watch(isOpenInternal, (newValue) => {
-  emit("update:modelValue", newValue);
-});
-  
-const { result } = useQuery(GET_POKEMON_DETAILS, {
-  id: props.id,
-});
-  
 const pokemon = ref(null);
-  
+
+const idRef = computed(() => props.id);
+const { result, refetch } = useQuery(GET_POKEMON_DETAILS, () => ({
+  id: idRef.value,
+}), {
+  fetchPolicy: "no-cache"
+});
+
 watch(result, (newResult) => {
   if (newResult && newResult.pokemon_v2_pokemon_by_pk) {
     pokemon.value = newResult.pokemon_v2_pokemon_by_pk;
   }
 });
-  
+
+watch([isOpenInternal, idRef], ([newOpen, newId], [oldOpen, oldId]) => {
+  if (newOpen && (newId !== oldId || !oldOpen)) {
+    refetch();
+  }
+  if (!newOpen) {
+    pokemon.value = null;
+  }
+  emit("update:modelValue", newOpen);
+});
+
 const close = () => {
   isOpenInternal.value = false;
 };

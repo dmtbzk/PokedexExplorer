@@ -1,6 +1,5 @@
 <template>
-   
-    <v-row justify="center">
+    <v-row justify="center my-6">
         <v-col cols="12" md="8">
             <h1 class="display-1 mb-5">
                 All Pokémon
@@ -8,7 +7,6 @@
             <PokemonList />
         </v-col>
     </v-row>
-
 </template>
 
 <script setup>

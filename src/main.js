@@ -17,6 +17,7 @@ const apolloClient = new ApolloClient({
   link : httpLink,
   cache: new InMemoryCache(),
 });
+
 const vuetify = createVuetify({
   components,
   directives,

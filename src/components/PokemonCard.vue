@@ -28,7 +28,7 @@
                 @click="openModal"
             />
         </v-card-actions>
-        <PokemonDetailModal :id="pokemon.id" v-model="isModalOpen" />
+        <PokemonDetailModal v-if="isModalOpen" :id="pokemon.id" v-model="isModalOpen" />
     </v-card>
 </template>
 
@@ -36,6 +36,8 @@
 import { ref } from "vue";
 import { defineProps } from "vue";
 import PokemonDetailModal from "./PokemonDetailModal.vue";
+
+const selection = ref(null);
 
 defineProps({
   pokemon: Object,

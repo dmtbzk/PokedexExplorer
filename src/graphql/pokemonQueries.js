@@ -57,3 +57,17 @@ export const SEARCH_POKEMONS = gql`
     }
   }
 `;
+
+export const GET_FAVORITE_POKEMON_DETAILS = gql`
+  query GetFavoritePokemonDetails($ids: [Int!]) {
+    pokemon_v2_pokemon(where: { id: { _in: $ids } }) {
+      id
+      name
+      pokemon_v2_pokemontypes {
+        pokemon_v2_type {
+          name
+        }
+      }
+    }
+  }
+`;
